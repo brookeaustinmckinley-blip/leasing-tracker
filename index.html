@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>McKinley Leasing Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --navy:      #1a2b3c;
+    --navy-deep: #0f1e2d;
+    --navy-lt:   #2e4159;
+    --gold:      #c49a3c;
+    --gold-lt:   #d4aa52;
+    --gold-dim:  rgba(196,154,60,0.15);
+    --cream:     #f5f0e8;
+    --cream2:    #ede7d9;
+    --white:     #ffffff;
+    --text:      #1a2b3c;
+    --text-muted:#7a8fa3;
+    --border:    rgba(26,43,60,0.1);
+    --border2:   rgba(26,43,60,0.18);
+    --green:     #3a7d5e;
+    --blue:      #2a6496;
+    --orange:    #c07430;
+    --red:       #a33030;
+    --am-color:  #c0392b;
+    --pm-color:  #2a6496;
+    --radius:    8px;
+    --radius-lg: 14px;
+    --sidebar-w: 230px;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Source Sans 3', sans-serif; background: var(--cream); color: var(--text); min-height: 100vh; line-height: 1.5; }
+
+  .app { display: grid; grid-template-columns: var(--sidebar-w) 1fr; min-height: 100vh; }
+
+  /* ── SIDEBAR ── */
+  .sidebar { background: var(--navy-deep); display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+  .sidebar-logo { padding: 28px 22px 24px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+  .logo-eyebrow { font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--gold); font-weight: 600; margin-bottom: 6px; }
+  .logo-wordmark { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 700; color: #fff; line-height: 1.15; }
+  .logo-sub { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 3px; }
+  .nav-block { padding: 18px 0 8px; }
+  .nav-label { font-size: 9px; letter-spacing: 0.15em; text-transform: uppercase; color: rgba(255,255,255,0.28); font-weight: 600; padding: 0 22px; margin-bottom: 6px; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 22px; font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.55); cursor: pointer; border-left: 2px solid transparent; transition: all 0.15s; }
+  .nav-item:hover { color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.04); }
+  .nav-item.active { color: var(--gold-lt); border-left-color: var(--gold); background: var(--gold-dim); }
+  .nav-icon { font-size: 15px; width: 16px; text-align: center; opacity: 0.8; }
+  .market-section { padding: 14px 16px 20px; margin-top: auto; border-top: 1px solid rgba(255,255,255,0.08); }
+  .market-label { font-size: 9px; letter-spacing: 0.15em; text-transform: uppercase; color: rgba(255,255,255,0.28); font-weight: 600; margin-bottom: 10px; }
+  .market-btn { display: block; width: 100%; padding: 9px 14px; margin-bottom: 5px; border-radius: var(--radius); border: 1px solid rgba(255,255,255,0.1); background: transparent; color: rgba(255,255,255,0.5); font-family: 'Source Sans 3', sans-serif; font-size: 13px; font-weight: 500; text-align: left; cursor: pointer; transition: all 0.15s; }
+  .market-btn:hover { color: rgba(255,255,255,0.85); border-color: rgba(255,255,255,0.2); }
+  .market-btn.active { background: var(--gold-dim); border-color: var(--gold); color: var(--gold-lt); font-weight: 600; }
+
+  /* ── MAIN ── */
+  .main { padding: 36px 40px; background: var(--cream); }
+  .page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 28px; gap: 16px; flex-wrap: wrap; padding-bottom: 24px; border-bottom: 1px solid var(--border2); }
+  .page-title { font-family: 'Playfair Display', serif; font-size: 28px; font-weight: 700; color: var(--navy-deep); line-height: 1.1; }
+  .page-sub { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+  .header-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .date-label { font-size: 12px; color: var(--text-muted); font-weight: 500; }
+  input[type="date"] { background: var(--white); border: 1px solid var(--border2); border-radius: var(--radius); color: var(--text); font-family: 'Source Sans 3', sans-serif; font-size: 13px; padding: 8px 12px; outline: none; transition: border-color 0.15s; }
+  input[type="date"]:focus { border-color: var(--gold); }
+
+  /* AM/PM */
+  .ampm-toggle { display: flex; border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border2); background: var(--white); }
+  .ampm-btn { padding: 8px 16px; font-size: 13px; font-weight: 600; font-family: 'Source Sans 3', sans-serif; border: none; background: transparent; cursor: pointer; transition: all 0.15s; color: var(--text-muted); letter-spacing: 0.05em; }
+  .ampm-btn.am.active { background: var(--am-color); color: #fff; }
+  .ampm-btn.pm.active { background: var(--pm-color); color: #fff; }
+  .ampm-badge { display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; }
+  .ampm-badge.am { background: rgba(192,57,43,0.1); color: var(--am-color); border: 1px solid rgba(192,57,43,0.25); }
+  .ampm-badge.pm { background: rgba(42,100,150,0.1); color: var(--pm-color); border: 1px solid rgba(42,100,150,0.25); }
+
+  /* PRE-FILL NOTICE */
+  .prefill-notice { display: flex; align-items: center; gap: 10px; background: var(--gold-dim); border: 1px solid rgba(196,154,60,0.3); border-radius: var(--radius); padding: 10px 16px; margin-bottom: 18px; font-size: 13px; color: #7a5c1a; }
+  .prefill-notice strong { font-weight: 600; }
+  .prefill-dismiss { margin-left: auto; cursor: pointer; font-size: 16px; color: #a07820; line-height: 1; background: none; border: none; }
+
+  /* SUMMARY CARDS */
+  .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 30px; }
+  .summary-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px 22px; position: relative; overflow: hidden; }
+  .summary-card::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: var(--stripe, var(--gold)); border-radius: 0 0 var(--radius-lg) var(--radius-lg); }
+  .summary-card.s-green { --stripe: var(--green); }
+  .summary-card.s-blue  { --stripe: var(--blue); }
+  .summary-card.s-orange{ --stripe: var(--orange); }
+  .summary-card.s-red   { --stripe: var(--red); }
+  .card-eyebrow { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); font-weight: 600; margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+  .card-value { font-family: 'Playfair Display', serif; font-size: 40px; font-weight: 700; color: var(--navy-deep); line-height: 1; }
+  .card-delta { font-size: 12px; font-weight: 500; margin-top: 8px; }
+  .delta-up   { color: var(--green); }
+  .delta-down { color: var(--red); }
+  .delta-flat { color: var(--text-muted); }
+
+  /* TABLE */
+  .section-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; flex-wrap: wrap; gap: 10px; }
+  .section-title { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); font-weight: 600; }
+  .btn-row { display: flex; gap: 8px; }
+  .save-btn { padding: 9px 24px; background: var(--navy-deep); color: #fff; border: none; border-radius: var(--radius); font-family: 'Source Sans 3', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+  .save-btn:hover { background: var(--navy-lt); }
+  .clear-btn { padding: 9px 18px; background: transparent; color: var(--text-muted); border: 1px solid var(--border2); border-radius: var(--radius); font-family: 'Source Sans 3', sans-serif; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+  .clear-btn:hover { color: var(--red); border-color: rgba(163,48,48,0.4); }
+  .table-wrap { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 30px; box-shadow: 0 1px 4px rgba(26,43,60,0.06); }
+  table { width: 100%; border-collapse: collapse; }
+  thead { background: var(--navy-deep); }
+  thead th { padding: 13px 18px; text-align: left; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255,255,255,0.55); font-weight: 600; }
+  thead th:first-child { color: rgba(255,255,255,0.8); }
+  tbody tr { transition: background 0.1s; }
+  tbody tr:hover { background: var(--cream2); }
+  tbody tr:not(:last-child) td { border-bottom: 1px solid var(--border); }
+  tbody td { padding: 13px 18px; font-size: 14px; font-weight: 500; color: var(--text); }
+  tbody td:first-child { font-weight: 600; color: var(--navy); }
+  .num-input { width: 74px; background: var(--cream); border: 1px solid var(--border2); border-radius: var(--radius); color: var(--text); font-family: 'Source Sans 3', sans-serif; font-size: 14px; padding: 6px 10px; text-align: center; outline: none; transition: border-color 0.15s; }
+  .num-input:focus { border-color: var(--gold); background: var(--white); }
+  .num-input.red-focus:focus { border-color: var(--red); }
+
+  /* TRENDS */
+  .chart-controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .range-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-muted); font-weight: 500; }
+  .range-row input[type="date"] { font-size: 12px; padding: 6px 10px; }
+  .pill-row { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 20px; }
+  .pill { padding: 5px 13px; border-radius: 999px; border: 1px solid var(--border2); font-size: 12px; font-weight: 500; color: var(--text-muted); cursor: pointer; transition: all 0.15s; background: var(--white); }
+  .pill:hover { border-color: var(--gold); color: var(--gold); }
+  .pill.active { background: var(--navy-deep); border-color: var(--navy-deep); color: #fff; }
+  .chart-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 26px 28px; margin-bottom: 24px; box-shadow: 0 1px 4px rgba(26,43,60,0.06); }
+  .chart-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 22px; flex-wrap: wrap; gap: 12px; }
+  .chart-title { font-family: 'Playfair Display', serif; font-size: 17px; font-weight: 600; color: var(--navy-deep); }
+  .chart-sub-label { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+  .chart-canvas-wrap { position: relative; width: 100%; }
+  .chart-legend { display: flex; gap: 18px; flex-wrap: wrap; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); font-weight: 500; }
+  .legend-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+  .legend-swatch { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
+  .legend-line { width: 18px; height: 3px; border-radius: 2px; flex-shrink: 0; }
+
+  /* HISTORY */
+  .history-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .sort-select { background: var(--white); border: 1px solid var(--border2); border-radius: var(--radius); color: var(--text); font-family: 'Source Sans 3', sans-serif; font-size: 13px; padding: 7px 12px; outline: none; cursor: pointer; }
+  .sort-select:focus { border-color: var(--gold); }
+  .history-grid { display: grid; gap: 10px; }
+
+  /* History card */
+  .hcard { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; box-shadow: 0 1px 3px rgba(26,43,60,0.05); }
+  .hcard-header { display: flex; align-items: center; gap: 12px; padding: 14px 18px; cursor: pointer; user-select: none; transition: background 0.12s; }
+  .hcard-header:hover { background: var(--cream2); }
+  .hcard-date { font-family: 'Playfair Display', serif; font-size: 15px; font-weight: 600; color: var(--navy); }
+  .hcard-ts { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+  .hcard-chips { display: flex; gap: 7px; flex-wrap: wrap; margin-left: 4px; }
+  .hchip { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 999px; border: 1px solid var(--border2); color: var(--text-muted); white-space: nowrap; }
+  .hchip.alert { border-color: rgba(163,48,48,0.3); color: var(--red); background: rgba(163,48,48,0.05); }
+  .hcard-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .expand-icon { font-size: 13px; color: var(--text-muted); transition: transform 0.2s; }
+  .hcard.open .expand-icon { transform: rotate(180deg); }
+  .delete-btn { padding: 5px 12px; background: transparent; border: 1px solid var(--border2); border-radius: var(--radius); font-size: 12px; color: var(--text-muted); cursor: pointer; font-family: 'Source Sans 3', sans-serif; font-weight: 500; transition: all 0.15s; }
+  .delete-btn:hover { border-color: rgba(163,48,48,0.4); color: var(--red); background: rgba(163,48,48,0.05); }
+
+  /* History detail table */
+  .hcard-detail { display: none; border-top: 1px solid var(--border); }
+  .hcard.open .hcard-detail { display: block; }
+  .hcard-detail table { width: 100%; border-collapse: collapse; }
+  .hcard-detail thead th { background: var(--cream2); padding: 9px 18px; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); font-weight: 600; text-align: left; border-bottom: 1px solid var(--border); }
+  .hcard-detail tbody td { padding: 10px 18px; font-size: 13px; border-bottom: 1px solid var(--border); color: var(--text); }
+  .hcard-detail tbody tr:last-child td { border-bottom: none; }
+  .hcard-detail tbody td:first-child { font-weight: 600; color: var(--navy); }
+  .val-cell { font-weight: 600; }
+  .val-zero { color: var(--text-muted); font-weight: 400; }
+  .val-alert { color: var(--red); font-weight: 700; }
+
+  /* EMPTY STATE */
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+  .empty-icon { font-size: 36px; margin-bottom: 12px; opacity: 0.4; }
+  .empty-text { font-size: 14px; }
+
+  /* TOAST */
+  .toast { position: fixed; bottom: 24px; right: 28px; background: var(--navy-deep); color: var(--gold-lt); font-size: 13px; font-weight: 600; padding: 11px 22px; border-radius: var(--radius); border: 1px solid var(--gold); opacity: 0; pointer-events: none; transition: opacity 0.25s; z-index: 999; }
+  .toast.show { opacity: 1; }
+
+  /* MODAL */
+  .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(15,30,45,0.55); z-index: 1000; align-items: center; justify-content: center; }
+  .modal-backdrop.open { display: flex; }
+  .modal { background: var(--white); border-radius: var(--radius-lg); padding: 28px 32px; max-width: 380px; width: 90%; }
+  .modal-title { font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 700; color: var(--navy-deep); margin-bottom: 10px; }
+  .modal-body { font-size: 14px; color: var(--text-muted); margin-bottom: 22px; line-height: 1.6; }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+  .modal-cancel { padding: 8px 18px; background: transparent; border: 1px solid var(--border2); border-radius: var(--radius); font-family: 'Source Sans 3', sans-serif; font-size: 13px; color: var(--text-muted); cursor: pointer; }
+  .modal-confirm { padding: 8px 18px; background: var(--red); border: none; border-radius: var(--radius); font-family: 'Source Sans 3', sans-serif; font-size: 13px; font-weight: 600; color: #fff; cursor: pointer; }
+
+  @media (max-width: 860px) {
+    .app { grid-template-columns: 1fr; }
+    .sidebar { position: static; height: auto; flex-direction: row; flex-wrap: wrap; padding: 16px; gap: 10px; }
+    .sidebar-logo { border-bottom: none; padding: 0; }
+    .market-section { border-top: none; padding: 0; margin-top: 0; display: flex; gap: 6px; }
+    .market-label { display: none; }
+    .market-btn { margin-bottom: 0; width: auto; padding: 7px 14px; font-size: 12px; }
+    .nav-block { display: flex; flex-wrap: wrap; gap: 2px; padding: 0; }
+    .nav-label { display: none; }
+    .nav-item { border-left: none; border-bottom: 2px solid transparent; padding: 8px 14px; font-size: 12px; border-radius: var(--radius); }
+    .nav-item.active { border-bottom-color: var(--gold); border-left: none; }
+    .summary-grid { grid-template-columns: repeat(2, 1fr); }
+    .main { padding: 20px; }
+    .page-title { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-eyebrow">McKinley</div>
+      <div class="logo-wordmark">Leasing<br/>Tracker</div>
+      <div class="logo-sub">Internal Dashboard</div>
+    </div>
+    <div class="nav-block">
+      <div class="nav-label">Navigate</div>
+      <div class="nav-item active" onclick="showView('entry')"><span class="nav-icon">📋</span> Daily Entry</div>
+      <div class="nav-item" onclick="showView('chart')"><span class="nav-icon">📈</span> Trends</div>
+      <div class="nav-item" onclick="showView('history')"><span class="nav-icon">🗂</span> History</div>
+    </div>
+    <div class="market-section">
+      <div class="market-label">Market</div>
+      <button class="market-btn active" onclick="switchMarket('orlando')">Orlando</button>
+      <button class="market-btn" onclick="switchMarket('michigan')">Michigan</button>
+    </div>
+  </aside>
+
+  <main class="main">
+
+    <!-- ── DAILY ENTRY ── -->
+    <div id="view-entry">
+      <div class="page-header">
+        <div>
+          <div class="page-title" id="market-title">Orlando</div>
+          <div class="page-sub" id="market-sub">Universal · Sea World · Winter Park · Airport</div>
+        </div>
+        <div class="header-right">
+          <span class="date-label">Date</span>
+          <input type="date" id="entry-date" onchange="onDateOrAmPmChange()" />
+          <div class="ampm-toggle">
+            <button class="ampm-btn am active" id="btn-am" onclick="setAmPm('AM')">AM</button>
+            <button class="ampm-btn pm" id="btn-pm" onclick="setAmPm('PM')">PM</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="prefill-banner" style="display:none;">
+        <div class="prefill-notice">
+          <span>📋 <strong>Pre-filled</strong> from your last saved entry — update any values that changed.</span>
+          <button class="prefill-dismiss" onclick="dismissPrefill()" title="Dismiss">✕</button>
+        </div>
+      </div>
+
+      <div class="summary-grid" id="summary-grid"></div>
+
+      <div class="section-row">
+        <div class="section-title">Location breakdown</div>
+        <div class="btn-row">
+          <button class="clear-btn" onclick="clearInputs()">Clear</button>
+          <button class="save-btn" onclick="saveEntry()">Save entry</button>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Location</th>
+              <th>Follow-ups</th>
+              <th>New leads</th>
+              <th>New convos</th>
+              <th>No follow-up</th>
+            </tr>
+          </thead>
+          <tbody id="loc-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── TRENDS ── -->
+    <div id="view-chart" style="display:none;">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Trends</div>
+          <div class="page-sub" id="chart-mkt-sub">Net change by submarket</div>
+        </div>
+        <div class="chart-controls">
+          <div class="range-row">
+            <span>From</span>
+            <input type="date" id="range-start" onchange="renderCharts()" />
+            <span>to</span>
+            <input type="date" id="range-end" onchange="renderCharts()" />
+          </div>
+        </div>
+      </div>
+
+      <div class="pill-row" id="metric-pills">
+        <div class="pill active" data-metric="followups" onclick="selectMetric(this,'followups')">Follow-ups</div>
+        <div class="pill" data-metric="leads" onclick="selectMetric(this,'leads')">New leads</div>
+        <div class="pill" data-metric="convos" onclick="selectMetric(this,'convos')">New convos</div>
+        <div class="pill" data-metric="nofollowup" onclick="selectMetric(this,'nofollowup')">No follow-up</div>
+      </div>
+
+      <!-- Bar: 1 bar per day, red=AM, blue=PM -->
+      <div class="chart-card">
+        <div class="chart-top">
+          <div>
+            <div class="chart-title">Daily net change</div>
+            <div class="chart-sub-label" id="chart-desc">One bar per day — red = AM, blue = PM. Hover for delta.</div>
+          </div>
+        </div>
+        <div class="chart-canvas-wrap" style="height:300px;">
+          <canvas id="bar-chart" role="img" aria-label="Bar chart of daily net change, AM in red, PM in blue"></canvas>
+        </div>
+        <div class="chart-legend">
+          <div class="legend-item"><div class="legend-swatch" style="background:#c0392b"></div>AM entry</div>
+          <div class="legend-item"><div class="legend-swatch" style="background:#2a6496"></div>PM entry</div>
+        </div>
+      </div>
+
+      <!-- Line: cumulative totals, red=AM, blue=PM -->
+      <div class="chart-card">
+        <div class="chart-top">
+          <div>
+            <div class="chart-title">Cumulative totals by submarket</div>
+            <div class="chart-sub-label">Red lines = AM entries · Blue lines = PM entries</div>
+          </div>
+        </div>
+        <div class="chart-canvas-wrap" style="height:300px;">
+          <canvas id="line-chart" role="img" aria-label="Line chart of cumulative totals, AM red, PM blue"></canvas>
+        </div>
+        <div class="chart-legend" id="line-legend"></div>
+      </div>
+    </div>
+
+    <!-- ── HISTORY ── -->
+    <div id="view-history" style="display:none;">
+      <div class="page-header">
+        <div>
+          <div class="page-title">History</div>
+          <div class="page-sub">All saved entries — <span id="history-mkt-label"></span></div>
+        </div>
+        <div class="history-controls">
+          <span class="date-label">Sort by</span>
+          <select class="sort-select" id="sort-select" onchange="renderHistory()">
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+            <option value="submitted">Submission time</option>
+          </select>
+        </div>
+      </div>
+      <div class="history-grid" id="history-grid"></div>
+    </div>
+
+  </main>
+</div>
+
+<!-- DELETE MODAL -->
+<div class="modal-backdrop" id="modal">
+  <div class="modal">
+    <div class="modal-title">Delete this entry?</div>
+    <div class="modal-body" id="modal-body">This will permanently remove the entry. This cannot be undone.</div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModal()">Cancel</button>
+      <button class="modal-confirm" onclick="confirmDelete()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const MARKETS = {
+  orlando: { label: 'Orlando', locs: ['Universal', 'Sea World', 'Winter Park', 'Airport'] },
+  michigan: { label: 'Michigan', locs: ['East Side', 'North Side', 'West Side', 'Ford Lake'] }
+};
+const FIELDS = [
+  { key: 'followups',  label: 'Follow-ups',   cls: 's-green',  color: '#3a7d5e' },
+  { key: 'leads',      label: 'New leads',    cls: 's-blue',   color: '#2a6496' },
+  { key: 'convos',     label: 'New convos',   cls: 's-orange', color: '#c07430' },
+  { key: 'nofollowup', label: 'No follow-up', cls: 's-red',    color: '#a33030' }
+];
+const LOC_COLORS = ['#c49a3c','#2a6496','#3a7d5e','#7a3c7a'];
+
+let market = 'orlando';
+let activeMetric = 'followups';
+let currentAmPm = 'AM';
+let allData = {};
+let barChart = null;
+let lineChart = null;
+let pendingDeleteKey = null;
+let prefillActive = false;
+
+function todayStr() { return new Date().toISOString().slice(0,10); }
+function slug(s) { return s.replace(/\s+/g,'_'); }
+function mkKey(mkt, date, ampm) { return mkt + '_' + date + '_' + ampm; }
+function getKey(date, ampm) { return mkKey(market, date, ampm); }
+function getEntry(date, ampm) { return allData[getKey(date, ampm)] || {}; }
+
+function sumEntry(entry) {
+  const t = { followups:0, leads:0, convos:0, nofollowup:0 };
+  MARKETS[market].locs.forEach(loc => {
+    const v = entry[slug(loc)] || {};
+    FIELDS.forEach(f => t[f.key] += (v[f.key]||0));
+  });
+  return t;
+}
+
+function init() {
+  const today = todayStr();
+  document.getElementById('entry-date').value = today;
+  const twoWeeksAgo = new Date(); twoWeeksAgo.setDate(twoWeeksAgo.getDate()-14);
+  document.getElementById('range-start').value = twoWeeksAgo.toISOString().slice(0,10);
+  document.getElementById('range-end').value = today;
+  try { allData = JSON.parse(localStorage.getItem('mckinley_v4') || '{}'); } catch(e) { allData={}; }
+  render();
+}
+
+// ── PRE-FILL LOGIC ──
+// Find the most recent saved entry for this market+ampm before the selected date
+function findPrevEntry(date, ampm) {
+  const keys = Object.keys(allData)
+    .filter(k => k.startsWith(market+'_') && k.endsWith('_'+ampm))
+    .map(k => k.replace(market+'_','').replace('_'+ampm,''))
+    .filter(d => d < date)
+    .sort();
+  if (!keys.length) return null;
+  return getEntry(keys[keys.length-1], ampm);
+}
+
+function onDateOrAmPmChange() {
+  const date = document.getElementById('entry-date').value;
+  const existing = allData[getKey(date, currentAmPm)];
+
+  if (existing) {
+    // Entry already saved for this slot — load it, no prefill banner
+    prefillActive = false;
+    document.getElementById('prefill-banner').style.display = 'none';
+    renderTable(existing);
+  } else {
+    // Try to prefill from last entry
+    const prev = findPrevEntry(date, currentAmPm);
+    if (prev && Object.keys(prev).length > 1) {
+      prefillActive = true;
+      document.getElementById('prefill-banner').style.display = 'block';
+      renderTable(prev);
+    } else {
+      prefillActive = false;
+      document.getElementById('prefill-banner').style.display = 'none';
+      renderTable({});
+    }
+  }
+  renderSummary();
+}
+
+function dismissPrefill() {
+  prefillActive = false;
+  document.getElementById('prefill-banner').style.display = 'none';
+}
+
+function setAmPm(val) {
+  currentAmPm = val;
+  document.getElementById('btn-am').classList.toggle('active', val==='AM');
+  document.getElementById('btn-pm').classList.toggle('active', val==='PM');
+  onDateOrAmPmChange();
+}
+
+function switchMarket(m) {
+  market = m;
+  document.querySelectorAll('.market-btn').forEach(b =>
+    b.classList.toggle('active', b.textContent.trim().toLowerCase() === m));
+  render();
+  if (document.getElementById('view-chart').style.display !== 'none') renderCharts();
+  if (document.getElementById('view-history').style.display !== 'none') renderHistory();
+}
+
+function showView(v) {
+  ['entry','chart','history'].forEach(x =>
+    document.getElementById('view-'+x).style.display = x===v ? 'block' : 'none');
+  document.querySelectorAll('.nav-item').forEach((el,i) =>
+    el.classList.toggle('active', ['entry','chart','history'][i]===v));
+  if (v==='chart')   renderCharts();
+  if (v==='history') renderHistory();
+}
+
+function render() {
+  const m = MARKETS[market];
+  document.getElementById('market-title').textContent = m.label;
+  document.getElementById('market-sub').textContent = m.locs.join(' · ');
+  onDateOrAmPmChange();
+}
+
+function renderTable(entry) {
+  const locs = MARKETS[market].locs;
+  document.getElementById('loc-tbody').innerHTML = locs.map(loc => {
+    const s = slug(loc);
+    const v = (entry||{})[s] || {};
+    return `<tr>
+      <td>${loc}</td>
+      ${FIELDS.map(f => `<td><input class="num-input${f.key==='nofollowup'?' red-focus':''}" type="number" min="0"
+        id="inp_${s}_${f.key}" value="${v[f.key]||''}" placeholder="0" oninput="updateSummary()"/></td>`).join('')}
+    </tr>`;
+  }).join('');
+}
+
+function renderSummary() {
+  const date  = document.getElementById('entry-date').value;
+  const entry = readInputs();
+  const t     = sumEntry(entry);
+
+  // Compare to same ampm previous saved entry
+  const prev = findPrevEntry(date, currentAmPm);
+  const pt   = prev ? sumEntry(prev) : null;
+
+  document.getElementById('summary-grid').innerHTML = FIELDS.map(f => {
+    const val = t[f.key];
+    let delta = '';
+    if (pt) {
+      const d = val - pt[f.key];
+      if (d>0)      delta = `<div class="card-delta delta-up">▲ ${d} vs prev ${currentAmPm}</div>`;
+      else if (d<0) delta = `<div class="card-delta delta-down">▼ ${Math.abs(d)} vs prev ${currentAmPm}</div>`;
+      else          delta = `<div class="card-delta delta-flat">Unchanged vs prev ${currentAmPm}</div>`;
+    }
+    const badge = `<span class="ampm-badge ${currentAmPm.toLowerCase()}">${currentAmPm}</span>`;
+    return `<div class="summary-card ${f.cls}">
+      <div class="card-eyebrow">${f.label} ${badge}</div>
+      <div class="card-value">${val}</div>
+      ${delta}
+    </div>`;
+  }).join('');
+}
+
+function updateSummary() { renderSummary(); }
+
+function readInputs() {
+  const locs = MARKETS[market].locs;
+  const entry = {};
+  locs.forEach(loc => {
+    const s = slug(loc);
+    const vals = {};
+    FIELDS.forEach(f => {
+      const el = document.getElementById('inp_'+s+'_'+f.key);
+      vals[f.key] = el ? (parseInt(el.value)||0) : 0;
+    });
+    entry[s] = vals;
+  });
+  return entry;
+}
+
+function clearInputs() {
+  prefillActive = false;
+  document.getElementById('prefill-banner').style.display = 'none';
+  renderTable({});
+  renderSummary();
+}
+
+function saveEntry() {
+  const date = document.getElementById('entry-date').value;
+  const key  = getKey(date, currentAmPm);
+  const inputs = readInputs();
+  allData[key] = { ...inputs, _meta: { savedAt: new Date().toISOString(), ampm: currentAmPm } };
+  try { localStorage.setItem('mckinley_v4', JSON.stringify(allData)); } catch(e) {}
+  prefillActive = false;
+  document.getElementById('prefill-banner').style.display = 'none';
+  toast('Entry saved — ' + currentAmPm);
+}
+
+// ── CHART HELPERS ──
+function fmtDate(d) { const [,m,dy]=d.split('-'); return `${m}/${dy}`; }
+
+function getUniqueDatesInRange() {
+  const start = document.getElementById('range-start').value;
+  const end   = document.getElementById('range-end').value;
+  const dates = new Set();
+  Object.keys(allData).forEach(k => {
+    if (!k.startsWith(market+'_')) return;
+    const d = k.replace(market+'_','').split('_')[0];
+    if (d >= start && d <= end) dates.add(d);
+  });
+  return [...dates].sort();
+}
+
+function getLocTotal(date, ampm, loc, metric) {
+  const s = slug(loc);
+  return ((allData[mkKey(market,date,ampm)]||{})[s]||{})[metric]||0;
+}
+
+function selectMetric(el, metric) {
+  activeMetric = metric;
+  document.querySelectorAll('#metric-pills .pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  renderCharts();
+}
+
+function renderCharts() {
+  const locs  = MARKETS[market].locs;
+  document.getElementById('chart-mkt-sub').textContent = locs.join(' · ');
+  const dates = getUniqueDatesInRange();
+
+  const noDataMsg = (canvasId) => {
+    const c = document.getElementById(canvasId);
+    if (!c) return;
+    const ctx = c.getContext('2d');
+    ctx.clearRect(0,0,c.width,c.height);
+    ctx.font = '14px "Source Sans 3", sans-serif';
+    ctx.fillStyle = '#7a8fa3';
+    ctx.textAlign = 'center';
+    ctx.fillText('No data in this date range yet.', (c.clientWidth||560)/2, 150);
+  };
+
+  const ttOpts = {
+    backgroundColor:'#1a2b3c', borderColor:'rgba(196,154,60,0.4)', borderWidth:1,
+    titleColor:'#f5f0e8', bodyColor:'#aabbc8', padding:12,
+    displayColors: false
+  };
+
+  // ── BAR CHART: 1 bar per day per period
+  // Two datasets: AM (red) and PM (blue), each with one value per date
+  if (barChart) barChart.destroy();
+
+  if (!dates.length) {
+    noDataMsg('bar-chart');
+    if (lineChart) { lineChart.destroy(); lineChart=null; }
+    noDataMsg('line-chart');
+    document.getElementById('line-legend').innerHTML = '';
+    return;
+  }
+
+  // Net change for a day+period = sum across all locations of that metric for that day
+  // Delta vs the previous day that has an entry for the same period
+  const sortedAMDates = Object.keys(allData)
+    .filter(k=>k.startsWith(market+'_')&&k.endsWith('_AM'))
+    .map(k=>k.replace(market+'_','').replace('_AM',''))
+    .sort();
+  const sortedPMDates = Object.keys(allData)
+    .filter(k=>k.startsWith(market+'_')&&k.endsWith('_PM'))
+    .map(k=>k.replace(market+'_','').replace('_PM',''))
+    .sort();
+
+  function dayTotal(date, ampm) {
+    return locs.reduce((sum,loc)=>sum+getLocTotal(date,ampm,loc,activeMetric),0);
+  }
+
+  function deltaFor(date, ampm) {
+    const periodDates = ampm==='AM' ? sortedAMDates : sortedPMDates;
+    const idx = periodDates.indexOf(date);
+    if (idx <= 0) return 0;
+    return dayTotal(date,ampm) - dayTotal(periodDates[idx-1],ampm);
+  }
+
+  // Build one AM dataset and one PM dataset
+  // Chart.js grouped bars: each date has up to 2 bars
+  const allDatesInRange = dates; // already filtered by range
+  const amDataset = {
+    label: 'AM',
+    data: allDatesInRange.map(d => {
+      const k = getKey(d,'AM');
+      return allData[k] ? deltaFor(d,'AM') : null;
+    }),
+    backgroundColor: '#c0392b',
+    borderColor: '#c0392bcc',
+    borderWidth: 1,
+    borderRadius: 4,
+    borderSkipped: false,
+    barPercentage: 0.7,
+    categoryPercentage: 0.8
+  };
+  const pmDataset = {
+    label: 'PM',
+    data: allDatesInRange.map(d => {
+      const k = getKey(d,'PM');
+      return allData[k] ? deltaFor(d,'PM') : null;
+    }),
+    backgroundColor: '#2a6496',
+    borderColor: '#2a6496cc',
+    borderWidth: 1,
+    borderRadius: 4,
+    borderSkipped: false,
+    barPercentage: 0.7,
+    categoryPercentage: 0.8
+  };
+
+  const bCtx = document.getElementById('bar-chart').getContext('2d');
+  barChart = new Chart(bCtx, {
+    type: 'bar',
+    data: { labels: allDatesInRange.map(fmtDate), datasets: [amDataset, pmDataset] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode:'index', intersect:false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          ...ttOpts,
+          callbacks: {
+            title: (items) => items[0]?.label || '',
+            label: (c) => {
+              if (c.parsed.y === null) return null;
+              const sign = c.parsed.y > 0 ? '+' : '';
+              return ` ${c.dataset.label}: ${sign}${c.parsed.y} (delta)`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: { grid:{color:'rgba(26,43,60,0.07)'}, ticks:{color:'#7a8fa3',font:{family:'Source Sans 3',size:11},autoSkip:true,maxTicksLimit:14} },
+        y: { grid:{color:'rgba(26,43,60,0.07)'}, ticks:{color:'#7a8fa3',font:{family:'Source Sans 3',size:11},callback:v=>(v>0?'+':'')+v} }
+      }
+    }
+  });
+
+  // ── LINE CHART: cumulative totals per location, AM=red, PM=blue ──
+  if (lineChart) lineChart.destroy();
+
+  const lineDatasets = [];
+  locs.forEach((loc, i) => {
+    const s = slug(loc);
+    let amCum=0, pmCum=0;
+    const amData=[], pmData=[];
+    dates.forEach(d => {
+      amCum += getLocTotal(d,'AM',loc,activeMetric);
+      pmCum += getLocTotal(d,'PM',loc,activeMetric);
+      amData.push(amCum);
+      pmData.push(pmCum);
+    });
+    const dashAM = i===0?[]:[6,3+i];
+    const dashPM = i===0?[3,3]:[6,3+i,2,3];
+    lineDatasets.push({
+      label: loc+' AM', data: amData,
+      borderColor: '#c0392b', borderWidth: 2,
+      borderDash: dashAM,
+      pointRadius: 3, pointHoverRadius: 5,
+      backgroundColor: 'transparent', tension: 0.3, fill: false
+    });
+    lineDatasets.push({
+      label: loc+' PM', data: pmData,
+      borderColor: '#2a6496', borderWidth: 2,
+      borderDash: dashPM,
+      pointRadius: 3, pointHoverRadius: 5,
+      backgroundColor: 'transparent', tension: 0.3, fill: false
+    });
+  });
+
+  const lCtx = document.getElementById('line-chart').getContext('2d');
+  lineChart = new Chart(lCtx, {
+    type: 'line',
+    data: { labels: dates.map(fmtDate), datasets: lineDatasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode:'index', intersect:false },
+      plugins: {
+        legend: { display:false },
+        tooltip: { ...ttOpts, callbacks: { label: c => ` ${c.dataset.label}: ${c.parsed.y}` } }
+      },
+      scales: {
+        x: { grid:{color:'rgba(26,43,60,0.07)'}, ticks:{color:'#7a8fa3',font:{family:'Source Sans 3',size:11},autoSkip:true,maxTicksLimit:14} },
+        y: { grid:{color:'rgba(26,43,60,0.07)'}, ticks:{color:'#7a8fa3',font:{family:'Source Sans 3',size:11}} }
+      }
+    }
+  });
+
+  // Line legend
+  document.getElementById('line-legend').innerHTML =
+    `<div class="legend-item"><div class="legend-line" style="background:#c0392b"></div>AM</div>
+     <div class="legend-item"><div class="legend-line" style="background:#2a6496"></div>PM</div>` +
+    locs.map((loc,i)=>`<div class="legend-item"><div class="legend-dot" style="background:${LOC_COLORS[i]}"></div>${loc}</div>`).join('');
+}
+
+// ── HISTORY ──
+function renderHistory() {
+  const mLabel = MARKETS[market].label;
+  document.getElementById('history-mkt-label').textContent = mLabel;
+  const sort = document.getElementById('sort-select').value;
+  const locs = MARKETS[market].locs;
+
+  let entries = Object.entries(allData)
+    .filter(([k]) => k.startsWith(market+'_'))
+    .map(([k, v]) => {
+      const stripped = k.replace(market+'_','');
+      const parts = stripped.split('_');
+      const date  = parts[0];
+      const ampm  = parts[1] || 'AM';
+      const meta  = v._meta || {};
+      return { key: k, date, ampm, savedAt: meta.savedAt||null, data: v };
+    });
+
+  if (sort==='newest')    entries.sort((a,b)=>b.date.localeCompare(a.date)||a.ampm.localeCompare(b.ampm));
+  if (sort==='oldest')    entries.sort((a,b)=>a.date.localeCompare(b.date)||a.ampm.localeCompare(b.ampm));
+  if (sort==='submitted') entries.sort((a,b)=>(b.savedAt||'').localeCompare(a.savedAt||''));
+
+  const grid = document.getElementById('history-grid');
+  if (!entries.length) {
+    grid.innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-text">No entries saved yet for ${mLabel}.</div></div>`;
+    return;
+  }
+
+  grid.innerHTML = entries.map((e, idx) => {
+    const t = sumEntry(e.data);
+    const [y,mo,dy] = e.date.split('-');
+    const tsLabel = e.savedAt
+      ? new Date(e.savedAt).toLocaleString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'numeric',minute:'2-digit'})
+      : 'Time not recorded';
+    const badgeCls = e.ampm==='AM'?'am':'pm';
+    const safeKey = e.key.replace(/'/g,"\\'");
+
+    // Build submarket detail rows
+    const detailRows = locs.map(loc => {
+      const s = slug(loc);
+      const v = (e.data[s])||{};
+      return `<tr>
+        <td>${loc}</td>
+        ${FIELDS.map(f => {
+          const val = v[f.key]||0;
+          const cls = val===0 ? 'val-zero' : (f.key==='nofollowup'&&val>0 ? 'val-alert' : 'val-cell');
+          return `<td class="${cls}">${val}</td>`;
+        }).join('')}
+      </tr>`;
+    }).join('');
+
+    return `<div class="hcard" id="hcard-${idx}">
+      <div class="hcard-header" onclick="toggleHCard(${idx})">
+        <div>
+          <div class="hcard-date">${mo}/${dy}/${y}</div>
+          <div class="hcard-ts">${tsLabel}</div>
+        </div>
+        <span class="ampm-badge ${badgeCls}" style="flex-shrink:0">${e.ampm}</span>
+        <div class="hcard-chips">
+          <span class="hchip">${t.followups} follow-ups</span>
+          <span class="hchip">${t.leads} new leads</span>
+          <span class="hchip">${t.convos} convos</span>
+          <span class="hchip alert">${t.nofollowup} no FU</span>
+        </div>
+        <div class="hcard-actions">
+          <button class="delete-btn" onclick="event.stopPropagation();promptDelete('${safeKey}','${mo}/${dy}/${y} ${e.ampm}')">Delete</button>
+          <span class="expand-icon">▾</span>
+        </div>
+      </div>
+      <div class="hcard-detail">
+        <table>
+          <thead><tr>
+            <th>Location</th>
+            ${FIELDS.map(f=>`<th>${f.label}</th>`).join('')}
+          </tr></thead>
+          <tbody>${detailRows}</tbody>
+        </table>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleHCard(idx) {
+  document.getElementById('hcard-'+idx).classList.toggle('open');
+}
+
+// ── DELETE ──
+function promptDelete(key, label) {
+  pendingDeleteKey = key;
+  document.getElementById('modal-body').textContent = `Remove the entry for ${label}? This cannot be undone.`;
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal() { pendingDeleteKey=null; document.getElementById('modal').classList.remove('open'); }
+function confirmDelete() {
+  if (!pendingDeleteKey) return;
+  delete allData[pendingDeleteKey];
+  try { localStorage.setItem('mckinley_v4', JSON.stringify(allData)); } catch(e) {}
+  closeModal();
+  renderHistory();
+  toast('Entry deleted');
+}
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'), 2200);
+}
+
+init();
+</script>
+</body>
+</html>
